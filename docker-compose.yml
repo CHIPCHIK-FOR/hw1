@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    container_name: Pulse
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DATABASE=postgres
+      - POSTGRES_USER=postgres
+    volumes:
+      - postgres-data:/var/lib/postgres/data
+
+volumes:
+  postgres-data:
