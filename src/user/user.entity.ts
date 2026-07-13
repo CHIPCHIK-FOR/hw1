@@ -1,22 +1,33 @@
-import { RefreshToken } from 'src/jwt/refresh-token.entity';
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany, JoinColumn } from 'typeorm';
+import { Check, Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
+@Entity({name: 'users',})
+@Check(`"age" >= 0`)
+export class User{
 
-@Entity()
-export class User {
     @PrimaryGeneratedColumn()
-    id!: number;
+    id: number;
 
-    @Column()
-    login!: string;
+    @Column({nullable: false})
+    login: string;
 
-    @Column()
-    email!: string;
+    @Column({nullable: false, unique: true})
+    email: string;
 
-    @Column()
-    password!: string;
+    @Column({nullable: false})
+    hashPassword: string;
 
-    @Column()
-    description!: string
+    @Column({nullable: false})
+    age: number;
 
+    @Column({nullable: true})
+    description: string;
+
+    @CreateDateColumn()
+    created_at: Date;
+
+    @UpdateDateColumn()
+    update_at: Date;
+
+    @Column({nullable: true, default: false})
+    is_delete: boolean;
 }

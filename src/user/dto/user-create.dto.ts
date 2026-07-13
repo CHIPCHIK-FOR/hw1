@@ -1,4 +1,5 @@
-import { IsEmail, IsInt, IsPositive, IsString, Matches, MaxLength, MinLength, IsOptional} from "class-validator";
+import { Optional } from "@nestjs/common";
+import { IsEmail, IsInt, IsPositive, IsString, Matches, MaxLength, MinLength } from "class-validator";
 
 
 export class SignUpDto{
@@ -18,7 +19,7 @@ export class SignUpDto{
     @IsPositive()
     age: number;
 
-    @IsOptional()
-    @MaxLength(1000)    
-    description?: string;
+    @Optional()
+    @MaxLength(1000)
+    description?: string = "";
 }

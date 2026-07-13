@@ -1,14 +1,14 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { IsNull, MoreThan, Repository } from "typeorm";
-import { RefreshSession } from "./entities/refresh-session.entity";
+import { RefreshSession } from "../auth/entities/refresh-session.entity";
 import { User } from "src/user/user.entity";
 
 @Injectable()
-export class RefreshSessionRepository{
+export class SessionRepository{
 
     constructor (@InjectRepository(RefreshSession) private readonly refreshSessionRepository: Repository<RefreshSession>){}
-
+    
     async createSession(user: User, tokenHash: string, expiresAt: Date) {
         const session = this.refreshSessionRepository.create({
             user,
@@ -16,6 +16,7 @@ export class RefreshSessionRepository{
             expiresAt,
             revokedAt: null
         });
+
         return await this.refreshSessionRepository.save(session);
     }
 

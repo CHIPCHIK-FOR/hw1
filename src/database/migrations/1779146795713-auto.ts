@@ -14,5 +14,4 @@ export class Auto1779146795713 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "user" ALTER COLUMN "password" SET DEFAULT true`);
         await queryRunner.query(`DROP TABLE "refresh_tokens"`);
     }
-
 }

@@ -1,33 +1,54 @@
-import { Controller, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, Req, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { Post} from '@nestjs/common';
-import { Body } from '@nestjs/common';
-import { SignInDto } from './dto/sign-in.dto';
-import { SignInResponseDto } from './dto/sign-in-response.dto';
-import { SignUpDto } from './dto/sign-up.dto';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { SignUpDto } from 'src/user/dto/user-create.dto';
+import { SignInDto } from 'src/user/dto/user-signIn.dto';
+import { HttpCode, HttpStatus } from '@nestjs/common';
+import type { Response, Request} from 'express';
+import { refreshCookieOptions } from './constants/refresh-cookie-options';
+import path from 'path';
+
 
 @Controller('auth')
 export class AuthController {
-
-    constructor(private readonly authService: AuthService){}
-
-
-    @Post('sign-in')
-    async signIn(@Body() data: SignInDto): Promise<SignInResponseDto>{
-
-        return await this.authService.signIn(data);
-    }
-
-    @Post('sign-up')
-    async signUp(@Body() data: SignUpDto){
-        return await this.authService.signUp(data);
-    }
+  constructor(private readonly authService: AuthService) {}
 
 
-    @Post('refresh')
-    async refreshToken(@Body('refreshToken') refreshToken: RefreshTokenDto){
-        return await this.authService.findByToken(refreshToken.refreshToken);
-    }
+  @Post('sign-up')
+  async signUp(@Body() dto: SignUpDto){
+    return this.authService.signUp(dto);
+  }
 
+  @Post('sign-in')
+  @HttpCode(HttpStatus.OK)
+  async signIn(@Body() dto: SignInDto, @Res({ passthrough: true }) response: Response){
+
+    const {accessToken, refreshToken} = await this.authService.signIn(dto);
+    response.cookie('refreshToken', refreshToken, refreshCookieOptions)
+
+    return {accessToken}
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  async refresh(@Req() request: Request, @Res({ passthrough: true }) response: Response,) {
+    const rToken = request.cookies?.refreshToken;
+
+    const { accessToken, newRefreshToken } = await this.authService.refresh(rToken);
+
+    response.cookie('refreshToken', newRefreshToken, refreshCookieOptions);
+
+    return { accessToken };
+  }
+
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  async logout(@Req() request: Request, @Res({ passthrough: true }) response: Response){
+    const refreshToken = request.cookies?.refreshToken;
+    await this.authService.logout(refreshToken);
+
+    response.clearCookie('refreshToken', {path: '/auth'});
+
+    return {message: 'Logget out'}
+  }
 }
