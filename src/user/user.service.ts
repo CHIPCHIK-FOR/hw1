@@ -20,18 +20,19 @@ export class UserService {
     }
 
 
-    async getAllUsers(limit: number, page: number, login: string ){
+    async getAllUsers(limit: number, page: number, login: string | undefined ){
         const offset = (page - 1) * limit
         const {users, total} = await this.userRepository.findAll(limit, offset, login);
         
         return {
             data:
                 users,
-            metadata: 
+            metadata:{
                 page,
                 limit,
                 total,
                 totalPage: Math.ceil(total / limit)
+            }
         }
     }
 

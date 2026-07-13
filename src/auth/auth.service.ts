@@ -1,8 +1,8 @@
 import { ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { SignUpDto } from 'src/user/dto/user-create.dto';
 import * as bcrypt from 'bcrypt';
 import { UserRepository } from 'src/user/user.repository';
-import { SignInDto } from 'src/user/dto/user-signIn.dto';
+import { SignUpDto } from './dto/sign-up.dto';
+import { SignInDto } from './dto/sign-in.dto';
 import { JwtService } from '@nestjs/jwt';
 import { randomBytes, createHmac } from 'crypto';
 import { ConfigService } from '@nestjs/config';

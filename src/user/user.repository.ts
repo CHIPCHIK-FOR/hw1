@@ -44,7 +44,8 @@ export class UserRepository{
     }
 
 
-    async findAll(limit: number, offset:number, login: string){
+    async findAll(limit: number, offset:number, login?: string){
+
         const [users, total] = await this.userRepository.findAndCount({
             select: ['id', 'login', 'email', 'age', 'description'],
             where: {
