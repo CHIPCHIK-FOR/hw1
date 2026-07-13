@@ -5,9 +5,9 @@ import { UserRepository } from 'src/user/user.repository';
 import { SignInDto } from 'src/user/dto/user-signIn.dto';
 import { JwtService } from '@nestjs/jwt';
 import { randomBytes, createHmac } from 'crypto';
-import { RefreshSessionRepository } from './refresh.repository';
 import { ConfigService } from '@nestjs/config';
 import { User } from 'src/user/user.entity';
+import { SessionRepository } from 'src/session/session.repository';
 
 
 
@@ -15,8 +15,8 @@ import { User } from 'src/user/user.entity';
 export class AuthService {
     constructor(
         private readonly userRepository: UserRepository,
-        private readonly sessionRepository: RefreshSessionRepository,
         private readonly configService: ConfigService,
+        private readonly sessionRepository: SessionRepository,
         private readonly jwtService: JwtService,
     ){}
 
@@ -110,7 +110,6 @@ export class AuthService {
     
 
     async logout(refreshToken:string) {
-        
         if (!refreshToken){
             return;
         }

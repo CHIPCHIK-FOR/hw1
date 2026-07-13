@@ -1,55 +1,19 @@
 import { BadRequestException, ConflictException, HttpStatus, Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { UserRepository } from './user.repository';
-import { SignUpDto} from './dto/user-create.dto';
+import { UpdateDto } from './dto/user-update.dto';
+import { UpdateUserData } from './type/update-user-data';
 import * as bcrypt from 'bcrypt';
-import { SignInDto } from './dto/user-signIn.dto';
-import { IsFQDN } from 'class-validator';
-
 
 @Injectable()
 export class UserService {
-    constructor(private readonly userRepository: UserRepository){}
+    constructor(
+        private readonly userRepository: UserRepository
+    ){}
 
     async testDB(){
         return this.userRepository.testDB()
     }
-
-    async checkUsers(){
-        return this.userRepository.checkDB();
-    }
-
-    async signUp(dto: SignUpDto){
-        const {password, ...UserData} = dto;
-        const user = await this.userRepository.findByEmail(UserData.email);
-        
-        if (user){
-            throw new ConflictException();
-        }
-        const hashPass = await bcrypt.hash(password, 10);
-        const userData = {
-            ...UserData,
-            hashPassword: hashPass
-        };
-        const createdUser = await this.userRepository.createUser(userData);
-        const {hashPassword, ...newuser} = createdUser;
-        return newuser;
-    }
-
-
-    async signIn(dto: SignInDto){
-        const user = await this.userRepository.findByLogin(dto.login);
-        if (!user){
-            throw new UnauthorizedException()
-        }
-
-        const isMatch = await bcrypt.compare(dto.password, user.hashPassword);
-        if (!isMatch){
-            throw new UnauthorizedException()
-        }
-        return {message: 'Welcome'};
-    }
-
-
+    
     async findById(id: number){
         const user = await this.userRepository.findById(id);
         return user;
@@ -74,13 +38,80 @@ export class UserService {
     async delete(id: number){
         try{
             await this.userRepository.softDelete(id);
-            return {
-                message: "Пользователь удален"
-            }
         }
         catch{
             throw new InternalServerErrorException()
         }
+    }
+
+    async update(id: number, dto: UpdateDto){
+
+        const user = await this.userRepository.findActiveUser(id);
+        if (!user){
+            throw new NotFoundException()
+        }
+
+        await this.checkEmail(id, dto.email);
+
+        await this.checkLogin(id, dto.login);
+
+        const updateData = await this.buildUpdateData(dto);
+
+        if (Object.keys(updateData).length === 0){
+            throw new BadRequestException()
+        }
+        await this.userRepository.updateById(id, updateData)
+        
+        const updatedUser = this.userRepository.findSafeById(id);
+
+        return updatedUser;
+    }
+
+    async checkLogin(id, login){
+        if (!login){
+            return;
+        }
+
+        const user = await this.userRepository.findByLogin(login);
+        if (user && user.id !== id){
+            throw new BadRequestException()
+        }
+    }
+
+    async checkEmail(id, email){
+        if (!email){
+            return;
+        }
+        const user = await this.userRepository.findByEmail(email);
+        if (user && user.id !== id){
+            throw new BadRequestException()
+        }
+    }
+
+    
+    private async buildUpdateData(dto: UpdateDto) {
+        const updateData: UpdateUserData = {};
+
+        if (dto.login !== undefined) {
+        updateData.login = dto.login;
+        }
+
+        if (dto.email !== undefined) {
+        updateData.email = dto.email;
+        }
+
+        if (dto.age !== undefined) {
+        updateData.age = dto.age;
+        }
+
+        if (dto.description !== undefined) {
+        updateData.description = dto.description;
+        }
+
+        if (dto.password !== undefined) {
+        updateData.hashPassword = await bcrypt.hash(dto.password, 10);
+        }
+        return updateData;
     }
 
 }

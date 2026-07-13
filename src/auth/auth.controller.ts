@@ -46,9 +46,7 @@ export class AuthController {
   async logout(@Req() request: Request, @Res({ passthrough: true }) response: Response){
     const refreshToken = request.cookies?.refreshToken;
     await this.authService.logout(refreshToken);
-
     response.clearCookie('refreshToken', {path: '/auth'});
-
     return {message: 'Logget out'}
   }
 }

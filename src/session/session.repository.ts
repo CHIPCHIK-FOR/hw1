@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { IsNull, MoreThan, Repository } from "typeorm";
+import { FindOptionsWhere, IsNull, MoreThan, Repository } from "typeorm";
 import { RefreshSession } from "../auth/entities/refresh-session.entity";
 import { User } from "src/user/user.entity";
 
@@ -35,10 +35,25 @@ export class SessionRepository{
     }
 
     async revoke(session: RefreshSession) {
-
         session.revokedAt = new Date();
         await this.refreshSessionRepository.save(session);
     }
+
+
+    async revokeAll(id: number){
+
+        const date = new Date();
+
+        await this.refreshSessionRepository.update(
+            {
+                user: {id: id},
+                revokedAt: IsNull()
+            },
+            {
+                revokedAt: date
+            })
+    }
+
 
 
     async findActiveSession(tokenHash: string){

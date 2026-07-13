@@ -3,6 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "./user.entity";
 import { Repository, ILike} from "typeorm";
 import { CreateUserData } from "./type/user-create-data";
+import { UpdateUserData } from "./type/update-user-data";
 
 
 @Injectable()
@@ -68,4 +69,32 @@ export class UserRepository{
             id: id},
             {is_delete: true});
     }
+
+    async findActiveUser(id: number){
+        const user = await this.userRepository.findOne({
+            where:{
+                id: id,
+                is_delete: false}})
+        return user
+    }
+
+
+    async updateById(id: number, updateData: UpdateUserData){
+        await this.userRepository.update({id}, updateData);
+    }
+
+    async findSafeById(id: number){
+        return await this.userRepository.findOne({
+            select: {
+            id: true,
+            login: true,
+            email: true,
+            age: true,
+            description: true
+            },
+            where: {
+            id,
+            },
+        });
+        }
 }

@@ -1,17 +1,39 @@
 import { Injectable } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { RefreshSession } from "src/auth/entities/refresh-session.entity";
-import { User } from "src/user/user.entity";
-import { Repository } from "typeorm";
 import { SessionRepository } from "./session.repository";
-
+import { ConfigService } from "@nestjs/config";
+import { createHmac } from 'crypto';
 
 @Injectable()
-export class SesssionService{
-    constructor(private readonly sessionRepository: SessionRepository){}
+export class SessionService{
+    constructor(
+        private readonly sessionRepository: SessionRepository,
+        private readonly configService: ConfigService
+    ){}
 
+    async logout(refreshToken:string) {
+        if (!refreshToken){
+            return;
+        }
+        const tokenHash = this.hashRefreskToken(refreshToken);
 
+        const session = await this.sessionRepository.findActiveSession(tokenHash);
 
+        if (!session){
+            return;
+        }
+        await this.sessionRepository.revoke(session);
+    }
 
+    private hashRefreskToken(token: string){
+        const tokenHash = createHmac('sha256', this.configService.getOrThrow('JWT_REFRESH_SECRET')).update(token).digest('hex');
+        return tokenHash;
+    }
+
+    async logoutAll(id:number) {
+        if (!id){
+            return;
+        }
+        await this.sessionRepository.revokeAll(id);
+    }
 
 }
