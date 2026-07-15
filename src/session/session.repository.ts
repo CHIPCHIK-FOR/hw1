@@ -1,20 +1,22 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { FindOptionsWhere, IsNull, MoreThan, Repository } from "typeorm";
+import { IsNull, MoreThan, Repository } from "typeorm";
 import { RefreshSession } from "../auth/entities/refresh-session.entity";
 import { User } from "src/user/user.entity";
 
 @Injectable()
-export class SessionRepository{
+export class SessionRepository {
+    constructor(
+        @InjectRepository(RefreshSession)
+        private readonly refreshSessionRepository: Repository<RefreshSession>,
+    ) {}
 
-    constructor (@InjectRepository(RefreshSession) private readonly refreshSessionRepository: Repository<RefreshSession>){}
-    
     async createSession(user: User, tokenHash: string, expiresAt: Date) {
         const session = this.refreshSessionRepository.create({
             user,
             tokenHash,
             expiresAt,
-            revokedAt: null
+            revokedAt: null,
         });
 
         return await this.refreshSessionRepository.save(session);
@@ -25,13 +27,13 @@ export class SessionRepository{
             where: {
                 tokenHash,
                 revokedAt: IsNull(),
-                expiresAt: MoreThan(new Date())},
-            relations:{
+                expiresAt: MoreThan(new Date()),
+            },
+            relations: {
                 user: true,
-            }
-        })
+            },
+        });
         return userSession;
-            
     }
 
     async revoke(session: RefreshSession) {
@@ -39,33 +41,31 @@ export class SessionRepository{
         await this.refreshSessionRepository.save(session);
     }
 
-
-    async revokeAll(id: number){
-
+    async revokeAll(id: number) {
         const date = new Date();
 
         await this.refreshSessionRepository.update(
             {
-                user: {id: id},
-                revokedAt: IsNull()
+                user: { id: id },
+                revokedAt: IsNull(),
             },
             {
-                revokedAt: date
-            })
+                revokedAt: date,
+            },
+        );
     }
 
-
-
-    async findActiveSession(tokenHash: string){
+    async findActiveSession(tokenHash: string) {
         const session = await this.refreshSessionRepository.findOne({
-            where:{
+            where: {
                 tokenHash,
                 revokedAt: IsNull(),
-                expiresAt: MoreThan(new Date())},
-            relations:{
-                user: true
-            }})
+                expiresAt: MoreThan(new Date()),
+            },
+            relations: {
+                user: true,
+            },
+        });
         return session;
     }
-    
 }

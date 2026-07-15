@@ -1,15 +1,13 @@
-import { ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
-import { UserRepository } from 'src/user/user.repository';
-import { SignUpDto } from './dto/sign-up.dto';
-import { SignInDto } from './dto/sign-in.dto';
-import { JwtService } from '@nestjs/jwt';
-import { randomBytes, createHmac } from 'crypto';
-import { ConfigService } from '@nestjs/config';
-import { User } from 'src/user/user.entity';
-import { SessionRepository } from 'src/session/session.repository';
-
-
+import { ConflictException, Injectable, UnauthorizedException } from "@nestjs/common";
+import * as bcrypt from "bcrypt";
+import { UserRepository } from "src/user/user.repository";
+import { SignUpDto } from "./dto/sign-up.dto";
+import { SignInDto } from "./dto/sign-in.dto";
+import { JwtService } from "@nestjs/jwt";
+import { randomBytes, createHmac } from "crypto";
+import { ConfigService } from "@nestjs/config";
+import { User } from "src/user/user.entity";
+import { SessionRepository } from "src/session/session.repository";
 
 @Injectable()
 export class AuthService {
@@ -18,106 +16,108 @@ export class AuthService {
         private readonly configService: ConfigService,
         private readonly sessionRepository: SessionRepository,
         private readonly jwtService: JwtService,
-    ){}
+    ) {}
 
-    async signUp(dto: SignUpDto){
-        const {password, ...userData} = dto;
+    async signUp(dto: SignUpDto) {
+        const { password, ...userData } = dto;
         const userByEmail = await this.userRepository.findByEmail(userData.email);
-        
-        if (userByEmail){
+
+        if (userByEmail) {
             throw new ConflictException();
         }
         const userByLogin = await this.userRepository.findByLogin(userData.login);
-        if (userByLogin){
+        if (userByLogin) {
             throw new ConflictException();
         }
 
         const hashPass = await bcrypt.hash(password, 10);
         const user = {
             ...userData,
-            hashPassword: hashPass
+            hashPassword: hashPass,
         };
         const createdUser = await this.userRepository.createUser(user);
-        const {hashPassword, ...newuser} = createdUser;
-        return newuser;
+        return {
+            id: createdUser.id,
+            email: createdUser.email,
+            login: createdUser.login,
+            description: createdUser.description,
+        };
     }
 
-    async signIn(dto: SignInDto){
+    async signIn(dto: SignInDto) {
         const user = await this.userRepository.findByLogin(dto.login);
-        if (!user){
-            throw new UnauthorizedException()
+        if (!user) {
+            throw new UnauthorizedException();
         }
 
         const isMatch = await bcrypt.compare(dto.password, user.hashPassword);
-        if (!isMatch){
-            throw new UnauthorizedException()
+        if (!isMatch) {
+            throw new UnauthorizedException();
         }
 
         const accessToken = await this.generationAccessToken(user);
         const refreshToken = this.generateRefreshToken();
 
-        const tokenHash = this.hashRefreskToken(refreshToken)
+        const tokenHash = this.hashRefreskToken(refreshToken);
 
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 30);
-        await this.sessionRepository.createSession(user, tokenHash, expiresAt)
+        await this.sessionRepository.createSession(user, tokenHash, expiresAt);
 
-        return {accessToken, refreshToken}
+        return { accessToken, refreshToken };
     }
 
     private generateRefreshToken(): string {
-        return randomBytes(64).toString('base64url');
+        return randomBytes(64).toString("base64url");
     }
 
-    private hashRefreskToken(token: string){
-        const tokenHash = createHmac('sha256', this.configService.getOrThrow('JWT_REFRESH_SECRET')).update(token).digest('hex');
+    private hashRefreskToken(token: string) {
+        const tokenHash = createHmac("sha256", this.configService.getOrThrow("JWT_REFRESH_SECRET"))
+            .update(token)
+            .digest("hex");
         return tokenHash;
     }
 
-    async refresh(refreshToken: string){
-        if (!refreshToken){
-            throw new UnauthorizedException()
+    async refresh(refreshToken: string) {
+        if (!refreshToken) {
+            throw new UnauthorizedException();
         }
-        
+
         const tokenHash = this.hashRefreskToken(refreshToken);
         const session = await this.sessionRepository.findActiveSession(tokenHash);
-        if (!session){
+        if (!session) {
             throw new UnauthorizedException();
         }
         await this.sessionRepository.revoke(session);
         const accessToken = await this.generationAccessToken(session.user);
-        const newRefreshToken = this.generateRefreshToken()
+        const newRefreshToken = this.generateRefreshToken();
         const newRefreshTokenHash = this.hashRefreskToken(newRefreshToken);
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 30);
-        await this.sessionRepository.createSession(session.user,  newRefreshTokenHash, expiresAt)
-        return {accessToken, newRefreshToken}
+        await this.sessionRepository.createSession(session.user, newRefreshTokenHash, expiresAt);
+        return { accessToken, newRefreshToken };
     }
 
-
-
-
-    private async generationAccessToken(user: User){
+    private async generationAccessToken(user: User) {
         const payload = {
             sub: user.id,
             login: user.login,
-            email: user.email
-        }
+            email: user.email,
+        };
         const accessToken = await this.jwtService.signAsync(payload);
 
         return accessToken;
-    } 
-    
+    }
 
-    async logout(refreshToken:string) {
-        if (!refreshToken){
+    async logout(refreshToken: string) {
+        if (!refreshToken) {
             return;
         }
         const tokenHash = this.hashRefreskToken(refreshToken);
 
         const session = await this.sessionRepository.findActiveSession(tokenHash);
 
-        if (!session){
+        if (!session) {
             return;
         }
         await this.sessionRepository.revoke(session);

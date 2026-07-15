@@ -1,11 +1,10 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { Type } from "class-transformer"
-import { IsInt, IsOptional, IsString, Min } from "class-validator"
+import { Type } from "class-transformer";
+import { IsInt, IsOptional, IsString, Min } from "class-validator";
 
-export class FindUsersQueryDto{
-
+export class FindUsersQueryDto {
     @ApiPropertyOptional({
-        description: "Номер страницы"
+        description: "Номер страницы",
     })
     @IsOptional()
     @IsInt()
@@ -14,7 +13,7 @@ export class FindUsersQueryDto{
     page: number = 1;
 
     @ApiPropertyOptional({
-        description: "Количество записей на одной странице"
+        description: "Количество записей на одной странице",
     })
     @IsOptional()
     @Min(1)
@@ -22,13 +21,12 @@ export class FindUsersQueryDto{
     @Type(() => Number)
     limit: number = 10;
 
-
     @ApiPropertyOptional({
-        example: 'Timurka',
-        description: 'Фильтр по login. Ищет пользователей, у которых login начинается с этого значения',
+        example: "Timurka",
+        description:
+            "Фильтр по login. Ищет пользователей, у которых login начинается с этого значения",
     })
     @IsOptional()
     @IsString()
     login?: string;
-
 }

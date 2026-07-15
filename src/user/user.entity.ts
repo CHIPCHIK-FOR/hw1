@@ -1,25 +1,31 @@
-import { Check, Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import {
+    Check,
+    Column,
+    CreateDateColumn,
+    Entity,
+    PrimaryGeneratedColumn,
+    UpdateDateColumn,
+} from "typeorm";
 
-@Entity({name: 'users',})
+@Entity({ name: "users" })
 @Check(`"age" >= 0`)
-export class User{
-
+export class User {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column({nullable: false})
+    @Column({ nullable: false })
     login: string;
 
-    @Column({nullable: false, unique: true})
+    @Column({ nullable: false, unique: true })
     email: string;
 
-    @Column({nullable: false})
+    @Column({ nullable: false })
     hashPassword: string;
 
-    @Column({nullable: false})
+    @Column({ nullable: false })
     age: number;
 
-    @Column({nullable: true})
+    @Column({ nullable: true })
     description: string;
 
     @CreateDateColumn()
@@ -28,6 +34,6 @@ export class User{
     @UpdateDateColumn()
     update_at: Date;
 
-    @Column({nullable: true, default: false})
+    @Column({ nullable: true, default: false })
     is_delete: boolean;
 }

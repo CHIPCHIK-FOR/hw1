@@ -1,6 +1,5 @@
+import { AccessTokenPayload } from "src/user/type/payload";
 import { Request } from "express";
-import { AccessTokenPayload } from "./payload";
-
 export type RequestWithUser = Request & {
     user: AccessTokenPayload;
 };
