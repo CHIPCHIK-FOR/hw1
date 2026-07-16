@@ -6,18 +6,24 @@ import {
     HttpCode,
     HttpStatus,
     Patch,
+    Post,
     Query,
     Req,
     Request,
+    UploadedFile,
     UseGuards,
+    UseInterceptors,
 } from "@nestjs/common";
 import { UserService } from "./user.service";
 import { AccessTokenGuard } from "src/security/guards/access-token.guard";
-import { FindUsersQueryDto } from "./dto/pagination-offset.dto";
 import type { RequestWithUser } from "./type/request-with-user";
 import { SessionService } from "src/session/session.service";
-import { UpdateDto } from "./dto/user-update.dto";
 import { ApiBearerAuth, ApiCookieAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
+import type { Express } from "express";
+import { FindUsersQueryDto } from "./dto/pagination-offset.dto";
+import { UpdateDto } from "./dto/user-update.dto";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { S3Service } from "src/object-storage/s3/s3.service";
 
 @ApiTags("User")
 @Controller("user")
@@ -25,6 +31,7 @@ export class UserController {
     constructor(
         private readonly userService: UserService,
         private readonly sessionService: SessionService,
+        private readonly S3: S3Service,
     ) {}
 
     @ApiOperation({
@@ -93,5 +100,11 @@ export class UserController {
     async update(@Req() req: RequestWithUser, @Body() dto: UpdateDto) {
         const id = req.user.sub;
         return await this.userService.update(id, dto);
+    }
+
+    @Post("upload")
+    @UseInterceptors(FileInterceptor("file"))
+    uploadFile(@UploadedFile() file: Express.Multer.File) {
+        console.log(file);
     }
 }

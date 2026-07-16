@@ -1,11 +1,11 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IUploadFile } from "../interfaces/file-payload.interface";
+import * as filePayloadInterface from "../interfaces/file-payload.interface";
 import { IsNotEmpty, IsString } from "class-validator";
 
 export class UploadFileDto {
     @ApiProperty()
     @IsNotEmpty()
-    file: IUploadFile;
+    file: filePayloadInterface.IUploadFile;
 
     @ApiProperty({ example: "users/avatar" })
     @IsString()

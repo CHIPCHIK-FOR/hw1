@@ -6,9 +6,10 @@ import { User } from "./user.entity";
 import { UserRepository } from "./user.repository";
 import { SecurityModule } from "src/security/security.module";
 import { SessionModule } from "src/session/session.module";
+import { ObjectStorageModule } from "src/object-storage/object-storage.module";
 
 @Module({
-    imports: [SessionModule, TypeOrmModule.forFeature([User]), SecurityModule],
+    imports: [ObjectStorageModule, SessionModule, TypeOrmModule.forFeature([User]), SecurityModule],
     controllers: [UserController],
     providers: [UserService, UserRepository],
     exports: [UserRepository],

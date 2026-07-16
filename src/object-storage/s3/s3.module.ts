@@ -21,5 +21,6 @@ import * as AWS from "@aws-sdk/client-s3";
             },
         },
     ],
+    exports: [S3Service, S3Lib],
 })
 export class S3Module {}
