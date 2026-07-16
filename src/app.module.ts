@@ -6,6 +6,7 @@ import { AuthModule } from "./auth/auth.module";
 import { ConfigModule } from "@nestjs/config";
 import { SessionModule } from "./session/session.module";
 import { JwtModule } from "@nestjs/jwt";
+import { ObjectStorageModule } from "./object-storage/object-storage.module";
 
 @Module({
     imports: [
@@ -17,6 +18,7 @@ import { JwtModule } from "@nestjs/jwt";
         AuthModule,
         SessionModule,
         JwtModule,
+        ObjectStorageModule,
     ],
 })
 export class AppModule {}
