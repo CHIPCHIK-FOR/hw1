@@ -8,7 +8,7 @@ import * as AWS from "@aws-sdk/client-s3";
 
 @Injectable()
 export class S3Service extends IFileService {
-    private backetName = "main";
+    private bucketName = "main";
     constructor(@Inject(S3Lib) private readonly S3: AWS.S3) {
         super();
     }
@@ -20,7 +20,7 @@ export class S3Service extends IFileService {
         return new Promise((resolve, reject) => {
             this.S3.putObject(
                 {
-                    Bucket: this.backetName,
+                    Bucket: this.bucketName,
                     Key: path,
                     Body: file.buffer,
                     ACL: "public-read",
@@ -42,7 +42,7 @@ export class S3Service extends IFileService {
         return new Promise((resolve, reject) => {
             this.S3.deleteObject(
                 {
-                    Bucket: this.backetName,
+                    Bucket: this.bucketName,
                     Key: path,
                 },
                 (error) => {
