@@ -1,8 +1,10 @@
+import { Avatar } from "src/object-storage/entityes/avatart.entity";
 import {
     Check,
     Column,
     CreateDateColumn,
     Entity,
+    OneToMany,
     PrimaryGeneratedColumn,
     UpdateDateColumn,
 } from "typeorm";
@@ -36,4 +38,7 @@ export class User {
 
     @Column({ nullable: true, default: false })
     is_delete: boolean;
+
+    @OneToMany(() => Avatar, (avatar) => avatar.user)
+    avatars: Avatar[];
 }

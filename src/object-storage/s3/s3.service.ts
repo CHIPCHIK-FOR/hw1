@@ -13,10 +13,13 @@ export class S3Service extends IFileService {
         super();
     }
 
-    async uploadFile(dto: UploadFileDto): Promise<ResultUploadFileDto> {
+    uploadFile(dto: UploadFileDto): Promise<ResultUploadFileDto> {
         const { file, folder, name } = dto;
         const path = `${folder}/${name}`;
 
+        if (!file) {
+            throw new BadRequestException();
+        }
         return new Promise((resolve, reject) => {
             this.S3.putObject(
                 {
@@ -37,7 +40,7 @@ export class S3Service extends IFileService {
         });
     }
 
-    async deleteFile(dto: RemoveFileDto): Promise<void> {
+    deleteFile(dto: RemoveFileDto): Promise<void> {
         const { path } = dto;
         return new Promise((resolve, reject) => {
             this.S3.deleteObject(

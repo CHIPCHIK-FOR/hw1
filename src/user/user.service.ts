@@ -1,5 +1,6 @@
 import {
     BadRequestException,
+    ConflictException,
     Injectable,
     InternalServerErrorException,
     NotFoundException,
@@ -8,10 +9,14 @@ import { UserRepository } from "./user.repository";
 import { UpdateDto } from "./dto/user-update.dto";
 import { UpdateUserData } from "./type/update-user-data";
 import * as bcrypt from "bcrypt";
+import { FileSystemRepository } from "src/files/files.repository";
 
 @Injectable()
 export class UserService {
-    constructor(private readonly userRepository: UserRepository) {}
+    constructor(
+        private readonly userRepository: UserRepository,
+        private readonly fileRepository: FileSystemRepository,
+    ) {}
 
     async testDB(): Promise<string> {
         return this.userRepository.testDB();
@@ -67,7 +72,7 @@ export class UserService {
         return updatedUser;
     }
 
-    async checkLogin(id, login) {
+    async checkLogin(id: number, login: string | undefined) {
         if (!login) {
             return;
         }
@@ -78,7 +83,7 @@ export class UserService {
         }
     }
 
-    async checkEmail(id, email) {
+    async checkEmail(id: number, email: string | undefined) {
         if (!email) {
             return;
         }
@@ -111,5 +116,16 @@ export class UserService {
             updateData.hashPassword = await bcrypt.hash(dto.password, 10);
         }
         return updateData;
+    }
+
+    async upload(userId: number, path: string) {
+        return await this.fileRepository.upload({ userId, path });
+    }
+
+    async countPhotos(id: number): Promise<void> {
+        const countPhotos = await this.fileRepository.getCountPhotos(id);
+        if (countPhotos >= 5) {
+            throw new ConflictException();
+        }
     }
 }

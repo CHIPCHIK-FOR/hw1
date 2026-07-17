@@ -23,7 +23,10 @@ import type { Express } from "express";
 import { FindUsersQueryDto } from "./dto/pagination-offset.dto";
 import { UpdateDto } from "./dto/user-update.dto";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { S3Service } from "src/object-storage/s3/s3.service";
+import { IFileService } from "src/object-storage/object-storage.adapter";
+import { UploadDataDto } from "./dto/upload-data.dto";
+import { FileSizeValidationPipe } from "./pipes/size-photo.pipe";
+import { FileTypeValidation } from "./pipes/types-photo.pipe";
 
 @ApiTags("User")
 @Controller("user")
@@ -31,7 +34,7 @@ export class UserController {
     constructor(
         private readonly userService: UserService,
         private readonly sessionService: SessionService,
-        private readonly S3: S3Service,
+        private readonly s3Service: IFileService,
     ) {}
 
     @ApiOperation({
@@ -104,7 +107,27 @@ export class UserController {
 
     @Post("upload")
     @UseInterceptors(FileInterceptor("file"))
-    uploadFile(@UploadedFile() file: Express.Multer.File) {
-        console.log(file);
+    @HttpCode(HttpStatus.OK)
+    // добавить pipe на проверку размера и типа файла
+    @UseGuards(AccessTokenGuard)
+    async uploadFile(
+        @UploadedFile(new FileSizeValidationPipe(), new FileTypeValidation())
+        file: Express.Multer.File,
+        @Req() req: RequestWithUser,
+        @Body() dto: UploadDataDto,
+    ) {
+        const id = req.user.sub;
+        const { folder, name } = dto;
+
+        await this.ensureUserCanUploadPhoto(id);
+
+        const uploadPhoto = await this.s3Service.uploadFile({ file, folder, name });
+        console.log("Фотка загружена");
+        const data = await this.userService.upload(id, uploadPhoto.path);
+        return data;
+    }
+
+    private async ensureUserCanUploadPhoto(id: number): Promise<void> {
+        await this.userService.countPhotos(id);
     }
 }
