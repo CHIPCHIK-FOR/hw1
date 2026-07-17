@@ -40,4 +40,14 @@ export class FileSystemRepository {
         console.log(photos.length);
         return photos.length;
     }
+
+    async deleteFile(id: number, path: string) {
+        await this.filesRepository.update(
+            {
+                path: path,
+                user: { id: id },
+            },
+            { is_delete: true },
+        );
+    }
 }

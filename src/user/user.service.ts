@@ -128,4 +128,8 @@ export class UserService {
             throw new ConflictException();
         }
     }
+
+    async deleteFile(id: number, path: string) {
+        await this.fileRepository.deleteFile(id, path);
+    }
 }

@@ -27,6 +27,7 @@ import { IFileService } from "src/object-storage/object-storage.adapter";
 import { UploadDataDto } from "./dto/upload-data.dto";
 import { FileSizeValidationPipe } from "./pipes/size-photo.pipe";
 import { FileTypeValidation } from "./pipes/types-photo.pipe";
+import { DeleteFileDto } from "./dto/delete-file.dto";
 
 @ApiTags("User")
 @Controller("user")
@@ -105,10 +106,10 @@ export class UserController {
         return await this.userService.update(id, dto);
     }
 
-    @Post("upload")
+    @Post("avatar")
     @UseInterceptors(FileInterceptor("file"))
     @HttpCode(HttpStatus.OK)
-    // добавить pipe на проверку размера и типа файла
+    @ApiOperation({ summary: "Загрузка фоток пользователей" })
     @UseGuards(AccessTokenGuard)
     async uploadFile(
         @UploadedFile(new FileSizeValidationPipe(), new FileTypeValidation())
@@ -129,5 +130,16 @@ export class UserController {
 
     private async ensureUserCanUploadPhoto(id: number): Promise<void> {
         await this.userService.countPhotos(id);
+    }
+
+    @Delete("avatar")
+    @HttpCode(HttpStatus.OK)
+    @UseGuards(AccessTokenGuard)
+    async deleteFile(@Req() req: RequestWithUser, @Body() dto: DeleteFileDto) {
+        const id = req.user.sub;
+
+        await this.userService.deleteFile(id, dto.path);
+
+        await this.s3Service.deleteFile(dto);
     }
 }
