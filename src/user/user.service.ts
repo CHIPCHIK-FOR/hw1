@@ -122,10 +122,15 @@ export class UserService {
         return await this.fileRepository.upload({ userId, path });
     }
 
-    async countPhotos(id: number): Promise<void> {
-        const countPhotos = await this.fileRepository.getCountPhotos(id);
-        if (countPhotos >= 5) {
+    async ensurePhotos(id: number, path: string): Promise<void> {
+        const Photos = await this.fileRepository.getPhotos(id);
+        if (Photos.length >= 5) {
             throw new ConflictException();
+        }
+        for (const photo of Photos) {
+            if (photo.path === path) {
+                throw new ConflictException();
+            }
         }
     }
 

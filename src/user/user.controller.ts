@@ -25,7 +25,6 @@ import { UpdateDto } from "./dto/user-update.dto";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { IFileService } from "src/object-storage/object-storage.adapter";
 import { UploadDataDto } from "./dto/upload-data.dto";
-import { FileSizeValidationPipe } from "./pipes/size-photo.pipe";
 import { FileTypeValidation } from "./pipes/types-photo.pipe";
 import { DeleteFileDto } from "./dto/delete-file.dto";
 
@@ -112,15 +111,15 @@ export class UserController {
     @ApiOperation({ summary: "Загрузка фоток пользователей" })
     @UseGuards(AccessTokenGuard)
     async uploadFile(
-        @UploadedFile(new FileSizeValidationPipe(), new FileTypeValidation())
+        @UploadedFile(new FileTypeValidation())
         file: Express.Multer.File,
         @Req() req: RequestWithUser,
         @Body() dto: UploadDataDto,
     ) {
         const id = req.user.sub;
         const { folder, name } = dto;
-
-        await this.ensureUserCanUploadPhoto(id);
+        const path = `${folder}/${name}`;
+        await this.ensureUserCanUploadPhoto(id, path);
 
         const uploadPhoto = await this.s3Service.uploadFile({ file, folder, name });
         console.log("Фотка загружена");
@@ -128,8 +127,8 @@ export class UserController {
         return data;
     }
 
-    private async ensureUserCanUploadPhoto(id: number): Promise<void> {
-        await this.userService.countPhotos(id);
+    private async ensureUserCanUploadPhoto(id: number, path: string): Promise<void> {
+        await this.userService.ensurePhotos(id, path);
     }
 
     @Delete("avatar")

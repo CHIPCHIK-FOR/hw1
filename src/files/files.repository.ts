@@ -30,15 +30,14 @@ export class FileSystemRepository {
         };
     }
 
-    async getCountPhotos(id: number) {
+    async getPhotos(id: number) {
         const photos = await this.filesRepository.find({
             where: {
                 user: { id: id },
                 is_delete: false,
             },
         });
-        console.log(photos.length);
-        return photos.length;
+        return photos;
     }
 
     async deleteFile(id: number, path: string) {
