@@ -1,6 +1,7 @@
 import {
     BadRequestException,
     ConflictException,
+    Inject,
     Injectable,
     InternalServerErrorException,
     NotFoundException,
@@ -11,10 +12,13 @@ import { UpdateUserData } from "./type/update-user-data";
 import * as bcrypt from "bcrypt";
 import { FileSystemRepository } from "src/files/files.repository";
 import { AgeFilterDto } from "./dto/age-filter.dtp";
+import { CACHE_MANAGER } from "@nestjs/cache-manager";
+import type { Cache } from "cache-manager";
 
 @Injectable()
 export class UserService {
     constructor(
+        @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
         private readonly userRepository: UserRepository,
         private readonly fileRepository: FileSystemRepository,
     ) {}
@@ -145,5 +149,22 @@ export class UserService {
             throw new BadRequestException();
         }
         return await this.userRepository.getActivesUsers(minAge, maxAge);
+    }
+
+    async testCache() {
+        const key = "test:redis";
+
+        await this.cacheManager.set(
+            key,
+            {
+                message: "Redis работает",
+                createdAt: new Date(),
+            },
+            50_000,
+        );
+
+        const cachedValue = await this.cacheManager.get(key);
+
+        return cachedValue;
     }
 }

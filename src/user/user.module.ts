@@ -8,9 +8,11 @@ import { SecurityModule } from "src/security/security.module";
 import { SessionModule } from "src/session/session.module";
 import { ObjectStorageModule } from "src/object-storage/object-storage.module";
 import { FileSystemModule } from "src/files/files.module";
+import { RedisModule } from "src/cache/redis.module";
 
 @Module({
     imports: [
+        RedisModule,
         FileSystemModule,
         ObjectStorageModule,
         SessionModule,

@@ -156,4 +156,9 @@ export class UserController {
         const users = await this.userService.getActiveUsers({ minAge, maxAge });
         return users;
     }
+
+    @Get("Cache")
+    async testCache() {
+        return this.userService.testCache();
+    }
 }
