@@ -10,6 +10,7 @@ import { UpdateDto } from "./dto/user-update.dto";
 import { UpdateUserData } from "./type/update-user-data";
 import * as bcrypt from "bcrypt";
 import { FileSystemRepository } from "src/files/files.repository";
+import { AgeFilterDto } from "./dto/age-filter.dtp";
 
 @Injectable()
 export class UserService {
@@ -136,5 +137,13 @@ export class UserService {
 
     async deleteFile(id: number, path: string) {
         await this.fileRepository.deleteFile(id, path);
+    }
+
+    async getActiveUsers(dto: AgeFilterDto) {
+        const { minAge, maxAge } = dto;
+        if (minAge > maxAge) {
+            throw new BadRequestException();
+        }
+        return await this.userRepository.getActivesUsers(minAge, maxAge);
     }
 }

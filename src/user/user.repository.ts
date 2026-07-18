@@ -4,6 +4,7 @@ import { User } from "./user.entity";
 import { Repository, ILike } from "typeorm";
 import { CreateUserData } from "./type/user-create-data";
 import { UpdateUserData } from "./type/update-user-data";
+import { ActiveUserRaw } from "./type/active-users";
 
 @Injectable()
 export class UserRepository {
@@ -101,5 +102,44 @@ export class UserRepository {
                 id,
             },
         });
+    }
+
+    async getActivesUsers(minAge: number, maxAge: number): Promise<ActiveUserRaw[]> {
+        const users: ActiveUserRaw[] = await this.userRepository.query(
+            `
+            with informations_user as (
+                select users.id, users.login, count(avatars.id) 
+                from users
+                left join avatars 
+                    on users.id = avatars.user_id
+                where
+                    avatars.is_delete = false
+                    and users.is_delete = false
+                    and users.description is not null
+                    and users.age between $1 and $2
+                    and TRIM(users.description) <> ''
+                group by
+                    (users.id, users.login)
+                having
+                    count(avatars.id) > 2
+                ),
+                last_avatars as (
+                    select distinct on (avatars.user_id) avatars.user_id, avatars.path, avatars.createad_at
+                    from avatars
+                    where
+                        avatars.is_delete = false
+                    order by 
+                        avatars.user_id,
+                        avatars.createad_at desc
+                )
+
+                select informations_user.id, informations_user.login, last_avatars.path, last_avatars.createad_at
+                from informations_user
+                left join last_avatars
+                on informations_user.id = last_avatars.user_id
+        `,
+            [minAge, maxAge],
+        );
+        return users;
     }
 }

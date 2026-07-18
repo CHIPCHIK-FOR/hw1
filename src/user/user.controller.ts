@@ -5,6 +5,7 @@ import {
     Get,
     HttpCode,
     HttpStatus,
+    ParseIntPipe,
     Patch,
     Post,
     Query,
@@ -18,7 +19,7 @@ import { UserService } from "./user.service";
 import { AccessTokenGuard } from "src/security/guards/access-token.guard";
 import type { RequestWithUser } from "./type/request-with-user";
 import { SessionService } from "src/session/session.service";
-import { ApiBearerAuth, ApiCookieAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiCookieAuth, ApiOperation, ApiProperty, ApiTags } from "@nestjs/swagger";
 import type { Express } from "express";
 import { FindUsersQueryDto } from "./dto/pagination-offset.dto";
 import { UpdateDto } from "./dto/user-update.dto";
@@ -131,6 +132,9 @@ export class UserController {
         await this.userService.ensurePhotos(id, path);
     }
 
+    @ApiProperty({
+        description: "Удаление фото",
+    })
     @Delete("avatar")
     @HttpCode(HttpStatus.OK)
     @UseGuards(AccessTokenGuard)
@@ -140,5 +144,16 @@ export class UserController {
         await this.userService.deleteFile(id, dto.path);
 
         await this.s3Service.deleteFile(dto);
+    }
+
+    @Get("active")
+    @UseGuards(AccessTokenGuard)
+    async getActiveUsers(
+        @Query("minAge", new ParseIntPipe()) minAge: number,
+        @Query("maxAge", new ParseIntPipe()) maxAge: number,
+    ) {
+        console.log(minAge, maxAge);
+        const users = await this.userService.getActiveUsers({ minAge, maxAge });
+        return users;
     }
 }
