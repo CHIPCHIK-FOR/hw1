@@ -28,15 +28,31 @@ export class UserService {
     }
 
     async findById(id: number) {
+        const key = `user:id:${id}`;
+        const userFromCache = await this.cacheManager.get(key);
+        if (userFromCache !== undefined) {
+            console.log("Cache hit");
+            return userFromCache;
+        }
+        console.log("Cache miss");
         const user = await this.userRepository.findById(id);
+        await this.cacheManager.set(key, user, 30_000);
         return user;
     }
 
     async getAllUsers(limit: number, page: number, login: string | undefined) {
         const offset = (page - 1) * limit;
+        const checkLogin = login?.trim().toLowerCase() || "all";
+        const key = `users:list:page:${page}:limit:${limit}:login:${checkLogin} `;
+        const usersFromCache = await this.cacheManager.get(key);
+        if (usersFromCache !== undefined) {
+            console.log("Cache hit");
+            return usersFromCache;
+        }
+        console.log("Cache miss");
         const { users, total } = await this.userRepository.findAll(limit, offset, login);
 
-        return {
+        const data = {
             data: users,
             metadata: {
                 page,
@@ -45,6 +61,8 @@ export class UserService {
                 totalPage: Math.ceil(total / limit),
             },
         };
+        await this.cacheManager.set(key, data, 10_000);
+        return data;
     }
 
     async delete(id: number) {
