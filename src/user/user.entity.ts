@@ -30,6 +30,14 @@ export class User {
     @Column({ nullable: true })
     description: string;
 
+    @Column({
+        type: "numeric",
+        precision: 12,
+        scale: 2,
+        default: "0.00",
+    })
+    balance: string;
+
     @CreateDateColumn()
     created_at: Date;
 

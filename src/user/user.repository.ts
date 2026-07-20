@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "./user.entity";
-import { Repository, ILike } from "typeorm";
+import { Repository, ILike, EntityManager } from "typeorm";
 import { CreateUserData } from "./type/user-create-data";
 import { UpdateUserData } from "./type/update-user-data";
 import { ActiveUserRaw } from "./type/active-users";
@@ -141,5 +141,25 @@ export class UserRepository {
             [minAge, maxAge],
         );
         return users;
+    }
+
+    async decreaseBalance(manager: EntityManager, userId: number, amount: number) {
+        return await manager
+            .createQueryBuilder()
+            .update(User)
+            .set({ balance: () => `"balance" - :amount` })
+            .where(`"id" = :userId`, { userId })
+            .andWhere(`"balance" > :amount`, { amount })
+            .execute();
+    }
+
+    async increaseBalance(manager: EntityManager, userId: number, amount: number) {
+        return await manager
+            .createQueryBuilder()
+            .update(User)
+            .set({ balance: () => `"balance" + :amount` })
+            .where(`"id" = :userId`, { userId })
+            .setParameter("amount", amount)
+            .execute();
     }
 }

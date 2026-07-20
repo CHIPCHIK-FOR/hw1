@@ -14,6 +14,8 @@ import { FileSystemRepository } from "src/files/files.repository";
 import { AgeFilterDto } from "./dto/age-filter.dtp";
 import { CACHE_MANAGER } from "@nestjs/cache-manager";
 import type { Cache } from "cache-manager";
+import { SendMoneyDto } from "./dto/send-monye.dto";
+import { DataSource } from "typeorm";
 
 @Injectable()
 export class UserService {
@@ -21,6 +23,7 @@ export class UserService {
         @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
         private readonly userRepository: UserRepository,
         private readonly fileRepository: FileSystemRepository,
+        private readonly dataSource: DataSource,
     ) {}
 
     async testDB(): Promise<string> {
@@ -184,5 +187,48 @@ export class UserService {
         const cachedValue = await this.cacheManager.get(key);
 
         return cachedValue;
+    }
+
+    async sendMoney(senderId: number, dto: SendMoneyDto) {
+        const { recipientId, amount } = dto;
+        const user = await this.userRepository.findById(recipientId);
+        if (!user) {
+            throw new NotFoundException();
+        }
+        if (senderId === recipientId) {
+            throw new BadRequestException();
+        }
+        return await this.dataSource.transaction(async (manager) => {
+            // Запрос для списания денег ()
+            const debitingOfMoney = await this.userRepository.decreaseBalance(
+                manager,
+                senderId,
+                amount,
+            );
+
+            // Проверка первого запроса
+            if (debitingOfMoney.affected !== 1) {
+                throw new BadRequestException();
+            }
+
+            // Запрос для зачисления денег
+            const receiptOfMoney = await this.userRepository.increaseBalance(
+                manager,
+                recipientId,
+                amount,
+            );
+
+            // Проверка второго запроса
+            if (receiptOfMoney.affected !== 1) {
+                throw new BadRequestException();
+            }
+
+            return {
+                message: "Перевод выполнен",
+                senderId,
+                recipientId,
+                amount,
+            };
+        });
     }
 }

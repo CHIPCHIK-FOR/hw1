@@ -28,6 +28,7 @@ import { IFileService } from "src/object-storage/object-storage.adapter";
 import { UploadDataDto } from "./dto/upload-data.dto";
 import { FileTypeValidation } from "./pipes/types-photo.pipe";
 import { DeleteFileDto } from "./dto/delete-file.dto";
+import { SendMoneyDto } from "./dto/send-monye.dto";
 
 @ApiTags("User")
 @Controller("user")
@@ -160,5 +161,12 @@ export class UserController {
     @Get("Cache")
     async testCache() {
         return this.userService.testCache();
+    }
+
+    @Post("sendMoney")
+    @UseGuards(AccessTokenGuard)
+    async sendMoney(@Req() req: RequestWithUser, @Body() dto: SendMoneyDto) {
+        const id = req.user.sub;
+        return await this.userService.sendMoney(id, dto);
     }
 }
