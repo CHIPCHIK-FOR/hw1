@@ -19,7 +19,7 @@ import { UserService } from "./user.service";
 import { AccessTokenGuard } from "src/security/guards/access-token.guard";
 import type { RequestWithUser } from "./type/request-with-user";
 import { SessionService } from "src/session/session.service";
-import { ApiBearerAuth, ApiCookieAuth, ApiOperation, ApiProperty, ApiTags } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiCookieAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import type { Express } from "express";
 import { FindUsersQueryDto } from "./dto/pagination-offset.dto";
 import { UpdateDto } from "./dto/user-update.dto";
@@ -29,6 +29,7 @@ import { UploadDataDto } from "./dto/upload-data.dto";
 import { FileTypeValidation } from "./pipes/types-photo.pipe";
 import { DeleteFileDto } from "./dto/delete-file.dto";
 import { SendMoneyDto } from "./dto/send-monye.dto";
+import { FileSizeValidation } from "./pipes/size-photo.pipe";
 
 @ApiTags("User")
 @Controller("user")
@@ -108,12 +109,13 @@ export class UserController {
     }
 
     @Post("avatar")
+    @ApiBearerAuth()
     @UseInterceptors(FileInterceptor("file"))
     @HttpCode(HttpStatus.OK)
     @ApiOperation({ summary: "Загрузка фоток пользователей" })
     @UseGuards(AccessTokenGuard)
     async uploadFile(
-        @UploadedFile(new FileTypeValidation())
+        @UploadedFile(new FileTypeValidation(), new FileSizeValidation())
         file: Express.Multer.File,
         @Req() req: RequestWithUser,
         @Body() dto: UploadDataDto,
@@ -133,10 +135,9 @@ export class UserController {
         await this.userService.ensurePhotos(id, path);
     }
 
-    @ApiProperty({
-        description: "Удаление фото",
-    })
     @Delete("avatar")
+    @ApiOperation({ summary: "Удаление фото" })
+    @ApiBearerAuth()
     @HttpCode(HttpStatus.OK)
     @UseGuards(AccessTokenGuard)
     async deleteFile(@Req() req: RequestWithUser, @Body() dto: DeleteFileDto) {
@@ -147,8 +148,12 @@ export class UserController {
         await this.s3Service.deleteFile(dto);
     }
 
+    @ApiOperation({
+        summary: "Запрос для получения активных пользователей",
+    })
     @Get("active")
     @UseGuards(AccessTokenGuard)
+    @ApiBearerAuth()
     async getActiveUsers(
         @Query("minAge", new ParseIntPipe()) minAge: number,
         @Query("maxAge", new ParseIntPipe()) maxAge: number,
@@ -158,12 +163,19 @@ export class UserController {
         return users;
     }
 
+    @ApiOperation({
+        summary: "Тестовая ручка",
+    })
     @Get("Cache")
     async testCache() {
         return this.userService.testCache();
     }
 
+    @ApiOperation({
+        summary: "Запрос для отправки денежный средств",
+    })
     @Post("sendMoney")
+    @ApiBearerAuth()
     @UseGuards(AccessTokenGuard)
     async sendMoney(@Req() req: RequestWithUser, @Body() dto: SendMoneyDto) {
         const id = req.user.sub;

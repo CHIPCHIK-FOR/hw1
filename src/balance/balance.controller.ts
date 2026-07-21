@@ -1,7 +1,9 @@
 import { Controller, Post } from "@nestjs/common";
 import { BalanceService } from "./balance.service";
 import { BalanceQueueService } from "./balance.queue.service";
+import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 
+@ApiTags("BalanceWithBull")
 @Controller("balance")
 export class BalanceConstroller {
     constructor(
@@ -10,6 +12,8 @@ export class BalanceConstroller {
     ) {}
 
     @Post("reset-balance")
+    @ApiBearerAuth()
+    @ApiOperation({ summary: "Добавить задачу в очередь для обнуления баланса у пользователей" })
     async resetBalance() {
         return await this.balanceQueueService.addJob();
     }

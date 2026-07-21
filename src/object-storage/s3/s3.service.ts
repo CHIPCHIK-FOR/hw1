@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable } from "@nestjs/common";
+import { BadRequestException, Inject, Injectable, Logger } from "@nestjs/common";
 import { RemoveFileDto } from "../dto/remove.file.dto";
 import { UploadFileDto } from "../dto/upload-file.dto";
 import { IFileService } from "../object-storage.adapter";
@@ -12,6 +12,7 @@ export class S3Service extends IFileService {
     constructor(@Inject(S3Lib) private readonly S3: AWS.S3) {
         super();
     }
+    private readonly logger = new Logger(S3Service.name);
 
     uploadFile(dto: UploadFileDto): Promise<ResultUploadFileDto> {
         const { file, folder, name } = dto;
@@ -20,6 +21,7 @@ export class S3Service extends IFileService {
         if (!file) {
             throw new BadRequestException();
         }
+
         return new Promise((resolve, reject) => {
             this.S3.putObject(
                 {
@@ -33,6 +35,7 @@ export class S3Service extends IFileService {
                     if (!error) {
                         resolve({ path });
                     } else {
+                        this.logger.error("Не получилось загрузить фото");
                         reject(new BadRequestException());
                     }
                 },
@@ -52,6 +55,7 @@ export class S3Service extends IFileService {
                     if (!error) {
                         resolve();
                     } else {
+                        this.logger.error("Не получилось удалить фото");
                         reject(new BadRequestException());
                     }
                 },

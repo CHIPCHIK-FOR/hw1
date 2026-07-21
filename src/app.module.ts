@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
 
 import { UserModule } from "./user/user.module";
 import { DatabaseModule } from "./database/database.module";
@@ -8,8 +8,9 @@ import { SessionModule } from "./session/session.module";
 import { JwtModule } from "@nestjs/jwt";
 import { ObjectStorageModule } from "./object-storage/object-storage.module";
 import { FileSystemModule } from "./files/files.module";
-import { BalanceModule } from "./BalanceModule/balance.module";
+import { BalanceModule } from "./balance/balance.module";
 import { ScheduleModule } from "@nestjs/schedule";
+import { LoggerMiddleware } from "./Logger/Middleware";
 
 @Module({
     imports: [
@@ -27,4 +28,8 @@ import { ScheduleModule } from "@nestjs/schedule";
         ObjectStorageModule,
     ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+    configure(consumer: MiddlewareConsumer) {
+        consumer.apply(LoggerMiddleware).forRoutes("*");
+    }
+}
