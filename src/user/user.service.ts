@@ -1,5 +1,7 @@
 import {
     BadRequestException,
+    ConflictException,
+    Inject,
     Injectable,
     InternalServerErrorException,
     NotFoundException,
@@ -8,25 +10,52 @@ import { UserRepository } from "./user.repository";
 import { UpdateDto } from "./dto/user-update.dto";
 import { UpdateUserData } from "./type/update-user-data";
 import * as bcrypt from "bcrypt";
+import { FileSystemRepository } from "src/files/files.repository";
+import { AgeFilterDto } from "./dto/age-filter.dtp";
+import { CACHE_MANAGER } from "@nestjs/cache-manager";
+import type { Cache } from "cache-manager";
+import { SendMoneyDto } from "./dto/send-monye.dto";
+import { DataSource } from "typeorm";
 
 @Injectable()
 export class UserService {
-    constructor(private readonly userRepository: UserRepository) {}
+    constructor(
+        @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+        private readonly userRepository: UserRepository,
+        private readonly fileRepository: FileSystemRepository,
+        private readonly dataSource: DataSource,
+    ) {}
 
     async testDB(): Promise<string> {
         return this.userRepository.testDB();
     }
 
     async findById(id: number) {
+        const key = `user:id:${id}`;
+        const userFromCache = await this.cacheManager.get(key);
+        if (userFromCache !== undefined) {
+            console.log("Cache hit");
+            return userFromCache;
+        }
+        console.log("Cache miss");
         const user = await this.userRepository.findById(id);
+        await this.cacheManager.set(key, user, 30_000);
         return user;
     }
 
     async getAllUsers(limit: number, page: number, login: string | undefined) {
         const offset = (page - 1) * limit;
+        const checkLogin = login?.trim().toLowerCase() || "all";
+        const key = `users:list:page:${page}:limit:${limit}:login:${checkLogin} `;
+        const usersFromCache = await this.cacheManager.get(key);
+        if (usersFromCache !== undefined) {
+            console.log("Cache hit");
+            return usersFromCache;
+        }
+        console.log("Cache miss");
         const { users, total } = await this.userRepository.findAll(limit, offset, login);
 
-        return {
+        const data = {
             data: users,
             metadata: {
                 page,
@@ -35,6 +64,8 @@ export class UserService {
                 totalPage: Math.ceil(total / limit),
             },
         };
+        await this.cacheManager.set(key, data, 10_000);
+        return data;
     }
 
     async delete(id: number) {
@@ -67,7 +98,7 @@ export class UserService {
         return updatedUser;
     }
 
-    async checkLogin(id, login) {
+    async checkLogin(id: number, login: string | undefined) {
         if (!login) {
             return;
         }
@@ -78,7 +109,7 @@ export class UserService {
         }
     }
 
-    async checkEmail(id, email) {
+    async checkEmail(id: number, email: string | undefined) {
         if (!email) {
             return;
         }
@@ -111,5 +142,97 @@ export class UserService {
             updateData.hashPassword = await bcrypt.hash(dto.password, 10);
         }
         return updateData;
+    }
+
+    async upload(userId: number, path: string) {
+        return await this.fileRepository.upload({ userId, path });
+    }
+
+    async ensurePhotos(id: number, path: string): Promise<void> {
+        const Photos = await this.fileRepository.getPhotos(id);
+        if (Photos.length >= 5) {
+            throw new ConflictException();
+        }
+        for (const photo of Photos) {
+            if (photo.path === path) {
+                throw new ConflictException();
+            }
+        }
+    }
+
+    async deleteFile(id: number, path: string) {
+        await this.fileRepository.deleteFile(id, path);
+    }
+
+    async getActiveUsers(dto: AgeFilterDto) {
+        const { minAge, maxAge } = dto;
+        if (minAge > maxAge) {
+            throw new BadRequestException();
+        }
+        return await this.userRepository.getActivesUsers(minAge, maxAge);
+    }
+
+    async testCache() {
+        const key = "test:redis";
+
+        await this.cacheManager.set(
+            key,
+            {
+                message: "Redis работает",
+                createdAt: new Date(),
+            },
+            50_000,
+        );
+
+        const cachedValue = await this.cacheManager.get(key);
+
+        return cachedValue;
+    }
+
+    async sendMoney(senderId: number, dto: SendMoneyDto) {
+        const { recipientId, amount } = dto;
+        const recipientUser = await this.userRepository.findById(recipientId);
+        const senderUser = await this.userRepository.findById(senderId);
+        if (!recipientUser || !senderUser) {
+            throw new NotFoundException();
+        }
+        if (senderId === recipientId) {
+            throw new BadRequestException();
+        }
+        if (Number(senderUser.balance) < amount) {
+            throw new BadRequestException();
+        }
+        return await this.dataSource.transaction(async (manager) => {
+            // Запрос для списания денег ()
+            const debitingOfMoney = await this.userRepository.decreaseBalance(
+                manager,
+                senderId,
+                amount,
+            );
+
+            // Проверка первого запроса
+            if (debitingOfMoney.affected !== 1) {
+                throw new BadRequestException();
+            }
+
+            // Запрос для зачисления денег
+            const receiptOfMoney = await this.userRepository.increaseBalance(
+                manager,
+                recipientId,
+                amount,
+            );
+
+            // Проверка второго запроса
+            if (receiptOfMoney.affected !== 1) {
+                throw new BadRequestException();
+            }
+
+            return {
+                message: "Перевод выполнен",
+                senderId,
+                recipientId,
+                amount,
+            };
+        });
     }
 }
