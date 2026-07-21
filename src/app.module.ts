@@ -9,9 +9,11 @@ import { JwtModule } from "@nestjs/jwt";
 import { ObjectStorageModule } from "./object-storage/object-storage.module";
 import { FileSystemModule } from "./files/files.module";
 import { BalanceModule } from "./BalanceModule/balance.module";
+import { ScheduleModule } from "@nestjs/schedule";
 
 @Module({
     imports: [
+        ScheduleModule.forRoot(),
         ConfigModule.forRoot({
             isGlobal: true,
         }),

@@ -6,10 +6,11 @@ import { BalanceService } from "./balance.service";
 import { BalanceConsumer } from "./balance.proccesor";
 import { BalanceQueueService } from "./balance.queue.service";
 import { UserModule } from "src/user/user.module";
+import { BalanceScheduler } from "./balance.scheduler";
 
 @Module({
     imports: [UserModule, QueueModule, BullModule.registerQueue({ name: "balance" })],
     controllers: [BalanceConstroller],
-    providers: [BalanceService, BalanceConsumer, BalanceQueueService],
+    providers: [BalanceService, BalanceConsumer, BalanceQueueService, BalanceScheduler],
 })
 export class BalanceModule {}
