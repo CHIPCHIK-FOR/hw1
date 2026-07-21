@@ -162,4 +162,30 @@ export class UserRepository {
             .setParameter("amount", amount)
             .execute();
     }
+
+    async resetBalance(): Promise<void> {
+        await this.userRepository
+            .createQueryBuilder()
+            .update(User)
+            .set({
+                balance: "0",
+            })
+            .execute();
+    }
+
+    // Пользователи с достаточным балансом
+
+    private async test1(minBalance: number): Promise<User[]> {
+        const users: User[] = await this.userRepository
+            .createQueryBuilder()
+            .select(["id", "login", "balance"])
+            .where({
+                is_delete: false,
+                balance: () => `"balance" > :minBalance`,
+            })
+            .orderBy("balance", "DESC")
+            .setParameter("minBalance", minBalance)
+            .getMany();
+        return users;
+    }
 }
