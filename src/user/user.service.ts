@@ -191,11 +191,15 @@ export class UserService {
 
     async sendMoney(senderId: number, dto: SendMoneyDto) {
         const { recipientId, amount } = dto;
-        const user = await this.userRepository.findById(recipientId);
-        if (!user) {
+        const recipientUser = await this.userRepository.findById(recipientId);
+        const senderUser = await this.userRepository.findById(senderId);
+        if (!recipientUser || !senderUser) {
             throw new NotFoundException();
         }
         if (senderId === recipientId) {
+            throw new BadRequestException();
+        }
+        if (Number(senderUser.balance) < amount) {
             throw new BadRequestException();
         }
         return await this.dataSource.transaction(async (manager) => {
